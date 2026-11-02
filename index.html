@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anatomie počítače</title>
+<style>
+:root{
+  --bg:#eef3fb; --ink:#1e293b; --muted:#64748b; --card:#ffffff; --line:#dbe4f0;
+  --brand:#2563eb; --good:#16a34a; --bad:#dc2626;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:17px; line-height:1.5;
+}
+header{padding:16px 28px 6px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
+header h1{margin:0; font-size:30px; letter-spacing:-.5px}
+header p{margin:0; color:var(--muted); font-size:17px}
+main{
+  display:grid; grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);
+  gap:22px; padding:10px 28px 28px; align-items:start;
+}
+.stage{
+  position:relative; border-radius:26px; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%,#ffffff 0%,#e6eefb 70%,#dbe6f7 100%);
+  box-shadow:0 10px 30px rgba(30,41,59,.10), inset 0 0 0 1px #d4def0;
+}
+svg#svg{display:block; width:100%; height:min(80vh,800px); min-height:520px; user-select:none; -webkit-user-select:none}
+.stage .hint{
+  position:absolute; left:16px; bottom:14px; background:rgba(255,255,255,.9); border:1px solid var(--line);
+  border-radius:999px; padding:6px 14px; font-size:15px; color:var(--muted); pointer-events:none;
+}
+
+/* ---- SVG ---- */
+.piece{cursor:pointer; transform-box:fill-box; transform-origin:center; transition:opacity .4s}
+.piece.hov{filter:brightness(1.12)}
+.piece.sel{filter:drop-shadow(0 0 7px var(--acc)) drop-shadow(0 0 2px var(--acc))}
+.piece.dim{opacity:.18}
+.pin{cursor:pointer; transform-box:fill-box; transform-origin:center; transition:opacity .4s}
+.pin.dim{opacity:.25}
+.pin .halo{transform-box:fill-box; transform-origin:center; animation:pulse 2.2s ease-out infinite}
+.pin text{pointer-events:none; font-weight:800}
+.pin.sel .face{fill:var(--acc)}
+.pin.sel text{fill:#fff}
+.pin:focus-visible{outline:none}
+.pin:focus-visible .face{stroke:#111; stroke-width:3.5}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.1);opacity:0}}
+.spin{transform-box:fill-box; transform-origin:center; animation:spin 1s linear infinite; animation-play-state:paused}
+.sel .spin{animation-play-state:running}
+@keyframes spin{to{transform:rotate(360deg)}}
+#tag{pointer-events:none}
+.tagpill{animation:tagin .35s .35s both}
+@keyframes tagin{from{opacity:0}to{opacity:1}}
+
+/* ---- panel ---- */
+.panel{display:flex; flex-direction:column; gap:14px; position:sticky; top:14px}
+.tabs{display:flex; gap:8px}
+.tabs button{
+  flex:1; padding:11px 14px; font:inherit; font-weight:700; border-radius:14px; cursor:pointer;
+  border:2px solid var(--line); background:#fff; color:var(--muted);
+}
+.tabs button[aria-pressed=true]{border-color:var(--brand); background:var(--brand); color:#fff}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{
+  display:inline-flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; font:inherit; font-size:15px; font-weight:600;
+  border-radius:999px; background:#fff; border:2px solid var(--line); color:var(--ink); cursor:pointer;
+}
+.chip b{
+  width:24px; height:24px; border-radius:50%; background:var(--acc); color:#fff; display:grid; place-items:center; font-size:14px;
+}
+.chip:hover{border-color:var(--acc)}
+.chip[aria-pressed=true]{background:var(--acc); border-color:var(--acc); color:#fff}
+.chip[aria-pressed=true] b{background:#fff; color:var(--acc)}
+.card{
+  background:var(--card); border-radius:22px; padding:20px 22px; box-shadow:0 8px 24px rgba(30,41,59,.09);
+  border:1px solid var(--line); border-top:8px solid var(--acc,var(--brand)); animation:cardin .35s both;
+}
+@keyframes cardin{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+.card-head{display:flex; gap:14px; align-items:center; margin-bottom:6px}
+.card-head .emoji{font-size:44px; line-height:1}
+.card h2{margin:0; font-size:28px; line-height:1.15}
+.card .nick{margin:2px 0 0; color:var(--acc,var(--brand)); font-weight:800}
+.card h3{margin:14px 0 2px; font-size:15px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted)}
+.card p{margin:0}
+.card .box{border-radius:14px; padding:10px 14px; margin-top:12px}
+.card .box h3{margin-top:0}
+.like{background:#eef6ff}
+.extra{background:#f4efff}
+.without{background:#fff4e5}
+.fact{background:#effaf0}
+.speed{width:100%; border-collapse:collapse; font-size:15px; margin-top:4px}
+.speed th,.speed td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+.speed thead th{font-size:13px; color:var(--muted)}
+.speed tbody th{white-space:nowrap}
+.speed .bar{display:block; height:8px; background:#e2e8f0; border-radius:4px; margin-top:4px; overflow:hidden}
+.speed .bar i{display:block; height:100%; border-radius:4px}
+.card .note{font-size:14px; color:var(--muted); margin-top:6px}
+.friends{margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:15px; color:var(--muted)}
+.nav{display:flex; gap:8px; margin-top:16px}
+.btn{
+  font:inherit; font-weight:700; padding:9px 16px; border-radius:12px; border:2px solid var(--line); background:#fff; cursor:pointer; color:var(--ink);
+}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:#fff}
+.btn.primary:hover{filter:brightness(1.1)}
+.nav .grow{flex:1}
+.idle h2{margin:0 0 6px; font-size:26px}
+.idle ol{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px}
+.idle li button{
+  width:100%; text-align:left; font:inherit; font-size:16px; padding:8px 12px; border-radius:12px; cursor:pointer;
+  background:#f6f9ff; border:1px solid var(--line); color:var(--ink); display:flex; gap:10px; align-items:center;
+}
+.idle li button:hover{border-color:var(--acc); background:#fff}
+.idle li .n{
+  flex:none; width:26px; height:26px; border-radius:50%; background:var(--acc); color:#fff; font-weight:800; font-size:14px; display:grid; place-items:center;
+}
+.q-progress{display:flex; gap:6px; margin-bottom:12px}
+.q-progress i{flex:1; height:8px; border-radius:6px; background:#e2e8f0}
+.q-progress i.ok{background:var(--good)}
+.q-progress i.mid{background:#f59e0b}
+.q-progress i.now{background:var(--brand)}
+.quiz .qtext{font-size:22px; font-weight:700; line-height:1.3; margin:4px 0 14px}
+.feedback{margin-top:12px; padding:12px 14px; border-radius:14px; font-weight:600}
+.feedback.ok{background:#e7f8ec; color:#14532d}
+.feedback.no{background:#fdecec; color:#7f1d1d}
+.feedback.hint{background:#fff7e0; color:#78350f}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.score{font-size:46px; font-weight:800; color:var(--brand); margin:4px 0}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr; padding:8px 14px 24px}
+  header{padding:14px 16px 4px}
+  header h1{font-size:25px}
+  svg#svg{height:auto; aspect-ratio:510/620; min-height:0}
+  .panel{position:static}
+}
+@media (prefers-reduced-motion:reduce){
+  .pin .halo,.spin,.tagpill,.card{animation:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🖥️ Co je uvnitř počítače?</h1>
+  <p>Klikni na část počítače (nebo na kroužek s číslem) – vysune se ven a my ti ukážeme, co dělá.</p>
+</header>
+
+<main>
+  <section class="stage" aria-label="Model počítače">
+    <svg id="svg" viewBox="-185 -375 510 620" role="group" aria-label="Interaktivní model počítače">
+      <defs>
+        <pattern id="mesh" width="4" height="4" patternUnits="userSpaceOnUse">
+          <rect width="4" height="4" fill="#1b2029"/><circle cx="2" cy="2" r="1.1" fill="#3b4354"/>
+        </pattern>
+        <pattern id="socketpins" width="3" height="3" patternUnits="userSpaceOnUse">
+          <rect width="3" height="3" fill="#1f2937"/><circle cx="1.5" cy="1.5" r=".8" fill="#f2c94c"/>
+        </pattern>
+        <linearGradient id="led" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+        <radialGradient id="fg"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".65" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+        <filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="10"/></filter>
+      </defs>
+      <g id="floor"></g>
+      <g id="pieces"></g>
+      <g id="pins"></g>
+      <g id="tag"></g>
+    </svg>
+    <div class="hint">👆 Zkus kliknout na kteroukoliv část</div>
+  </section>
+
+  <aside class="panel" aria-live="polite">
+    <div class="tabs">
+      <button id="tab-explore" aria-pressed="true">🔍 Prozkoumej</button>
+      <button id="tab-quiz" aria-pressed="false">🎯 Kvíz</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="content"></div>
+  </aside>
+</main>
+
+<script>
+'use strict';
+/* =====================================================================
+   1) IZOMETRICKÁ GEOMETRIE
+   x = osa dozadu→dopředu (doprava dolů), y = osa od zadní stěny k nám (doleva dolů), z = výška
+   ===================================================================== */
+const C = Math.sqrt(3) / 2, HALF = .5;
+const r = n => Math.round(n * 100) / 100;
+const P = (x, y, z) => [(x - y) * C, (x + y) * HALF - z];
+const pt = (x, y, z) => P(x, y, z).map(r).join(',');
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const R = n >> 16, G = (n >> 8) & 255, B = n & 255;
+  const m = v => f <= 1 ? Math.round(v * f) : Math.round(v + (255 - v) * (f - 1));
+  return `rgb(${m(R)},${m(G)},${m(B)})`;
+}
+// kvádr: vidíme horní stěnu, stěnu +y (levá na obrazovce) a stěnu +x (pravá)
+function box(x, y, z, w, d, h, col, o = {}) {
+  const T = o.top || shade(col, 1.22), L = o.fy || shade(col, .92), R_ = o.fx || shade(col, .66);
+  const st = `stroke="rgba(0,0,0,.28)" stroke-width=".7" stroke-linejoin="round"`;
+  const X = x + w, Y = y + d, Z = z + h;
+  return `<polygon points="${pt(x,y,Z)} ${pt(X,y,Z)} ${pt(X,Y,Z)} ${pt(x,Y,Z)}" fill="${T}" ${st}/>`
+       + `<polygon points="${pt(x,Y,z)} ${pt(X,Y,z)} ${pt(X,Y,Z)} ${pt(x,Y,Z)}" fill="${L}" ${st}/>`
+       + `<polygon points="${pt(X,y,z)} ${pt(X,Y,z)} ${pt(X,Y,Z)} ${pt(X,y,Z)}" fill="${R_}" ${st}/>`;
+}
+// "plátna" na stěnách kvádru – uvnitř se kreslí v lokálních souřadnicích
+const fY = (y, s) => `<g transform="matrix(${r(C)} ${HALF} 0 -1 ${r(-y*C)} ${r(y*HALF)})">${s}</g>`;   // u = x, v = z
+const fX = (x, s) => `<g transform="matrix(${r(-C)} ${HALF} 0 -1 ${r(x*C)} ${r(x*HALF)})">${s}</g>`;  // u = y, v = z
+const fZ = (z, s) => `<g transform="matrix(${r(C)} ${HALF} ${r(-C)} ${HALF} 0 ${-z})">${s}</g>`;       // u = x, v = y
+const txY = (u, v, s, size, fill) => `<text transform="translate(${u} ${v}) scale(1 -1)" font-size="${size}" fill="${fill}" font-weight="800" text-anchor="middle">${s}</text>`;
+const txX = (u, v, s, size, fill) => `<text transform="translate(${u} ${v}) scale(-1 -1)" font-size="${size}" fill="${fill}" font-weight="800" text-anchor="middle">${s}</text>`;
+const txZ = (u, v, s, size, fill) => `<text x="${u}" y="${v}" font-size="${size}" fill="${fill}" font-weight="800" text-anchor="middle">${s}</text>`;
+
+function fan(cx, cy, R, col, hub) {
+  let b = '';
+  for (let i = 0; i < 7; i++)
+    b += `<path d="M0 0 C${r(R*.15)} ${r(-R*.35)} ${r(R*.55)} ${r(-R*.85)} ${r(R*.9)} ${r(-R*.75)} C${r(R*.75)} ${r(-R*.3)} ${r(R*.4)} ${r(-R*.05)} 0 0Z" fill="${col}" transform="rotate(${r(i*360/7)})"/>`;
+  return `<g transform="translate(${cx} ${cy})"><circle r="${R}" fill="#0d1117" stroke="${col}" stroke-opacity=".5"/>`
+       + `<g class="spin"><circle r="${R*.96}" fill="none"/>${b}</g><circle r="${r(R*.22)}" fill="${hub}"/></g>`;
+}
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function traces() {
+  let s = '';
+  for (let i = 0; i < 46; i++) {
+    const u = 20 + rnd() * 130, v = 82 + rnd() * 192;
+    const u2 = Math.min(152, Math.max(18, u + (rnd() - .5) * 80)), v2 = Math.min(274, Math.max(80, v + (rnd() - .5) * 90));
+    s += `M${r(u)} ${r(v)}H${r(u2)}V${r(v2)}`;
+  }
+  return `<path d="${s}" fill="none" stroke="#e8cf7a" stroke-opacity=".38" stroke-width="1"/>`;
+}
+
+/* =====================================================================
+   2) ROZMĚRY A DÍLY
+   ===================================================================== */
+const D = 270, W = 120, H = 290;
+const PIECES = [];   // v pořadí kreslení (zezadu dopředu)
+const add = (id, part, svg, o = {}) => PIECES.push({ id, part, svg, ...o });
+
+// --- skříň (pevné části) ---
+add('floor', 'case', box(0, 0, 0, D, W, 6, '#262c38'), { static: true });
+add('back', 'case', box(0, 0, 0, D, 6, H, '#4b556b') + fY(6,
+  [[16,16],[16,274],[250,16],[250,274]].map(([a,b]) => `<circle cx="${a}" cy="${b}" r="2.6" fill="#2a3040"/>`).join('')), { static: true });
+add('rear', 'case', box(0, 0, 0, 6, W, H, '#2a303c') + fX(6,
+  `<rect x="8" y="222" width="28" height="58" rx="3" fill="#12151b"/><rect x="14" y="10" width="76" height="52" rx="4" fill="#12151b"/>` +
+  [0,1,2,3].map(i => `<rect x="${96+i*5}" y="14" width="3" height="40" rx="1.5" fill="#12151b"/>`).join('')), { static: true });
+
+// --- základní deska ---
+add('board', 'board',
+  box(14, 6, 76, 142, 4, 202, '#1f7a4f') +
+  fY(10,
+    traces() +
+    [[20,82],[150,82],[20,272],[150,272],[84,150]].map(([a,b]) => `<circle cx="${a}" cy="${b}" r="2.6" fill="#d1d5db"/>`).join('') +
+    // patice procesoru (zlaté kontakty)
+    `<rect x="60" y="198" width="36" height="36" rx="3" fill="#b7bfcc" stroke="#6b7280"/>` +
+    `<rect x="64" y="202" width="28" height="28" fill="url(#socketpins)"/>` +
+    // sloty pro RAM
+    [108,117,126,135].map(x => `<rect x="${x}" y="188" width="5" height="80" rx="1.5" fill="#10141a"/><rect x="${x+1.5}" y="226" width="2" height="4" fill="#475569"/>`).join('') +
+    // sloty pro grafickou kartu a další
+    `<rect x="24" y="108" width="100" height="6" rx="1.5" fill="#10141a"/><rect x="82" y="145" width="64" height="3" rx="1.5" fill="#10141a"/>` +
+    txY(100, 84, 'ZÁKLADNÍ DESKA', 9, 'rgba(255,255,255,.55)')
+  ) +
+  box(14, 10, 226, 20, 18, 50, '#a9b1c0') +                                    // zadní konektory (USB, síť…)
+  fY(28, `<rect x="16" y="262" width="7" height="8" fill="#2563eb"/><rect x="25" y="262" width="7" height="8" fill="#2563eb"/>` +
+         `<rect x="16" y="245" width="16" height="12" fill="#10141a"/><circle cx="19" cy="234" r="2.2" fill="#22c55e"/><circle cx="25" cy="234" r="2.2" fill="#ec4899"/><circle cx="31" cy="234" r="2.2" fill="#3b82f6"/>`) +
+  box(32, 10, 200, 18, 14, 58, '#4b5563') +                                    // chladič napájení procesoru (VRM)
+  fY(24, Array.from({length: 13}, (_, i) => `<line x1="32" x2="50" y1="${203+i*4.4}" y2="${203+i*4.4}" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>`).join('')) +
+  box(58, 10, 246, 46, 12, 24, '#4b5563') +
+  fY(22, Array.from({length: 10}, (_, i) => `<line y1="246" y2="270" x1="${60+i*4.6}" x2="${60+i*4.6}" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>`).join('')) +
+  box(130, 10, 82, 22, 12, 24, '#6b7280') +                                    // čipset
+  fY(22, `<rect x="134" y="87" width="14" height="12" rx="2" fill="#374151"/>` + txY(141, 95, 'CHIP', 4.5, '#e5e7eb')) +
+  box(144, 10, 176, 10, 12, 60, '#e6e1d0') +                                   // 24pin konektor
+  fY(22, Array.from({length: 12}, (_, i) => `<rect x="146" y="${179+i*4.8}" width="6" height="3" fill="#6b6455"/>`).join('')));
+
+// --- M.2 NVMe disk (zasunutý přímo do základní desky) ---
+add('m2', 'storage',
+  box(84, 10, 148, 60, 3, 16, '#1f2937') +
+  fY(13, `<rect x="84" y="150" width="6" height="12" fill="#e0b84a"/>` +
+         `<rect x="94" y="150" width="14" height="12" rx="1.5" fill="#0b0d11" stroke="#475569" stroke-width=".5"/>` +
+         `<rect x="112" y="150" width="10" height="12" rx="1.5" fill="#0b0d11" stroke="#475569" stroke-width=".5"/>` +
+         txY(134, 153, 'NVMe', 7, '#fbbf24') +
+         `<circle cx="141" cy="156" r="2" fill="#d1d5db"/>`));
+
+// --- zdroj ---
+add('psu', 'psu',
+  box(10, 14, 6, 100, 80, 60, '#2d333f') +
+  fZ(66, `<circle cx="60" cy="54" r="32" fill="#12151b"/>` +
+         [25, 18, 11].map(rr => `<circle cx="60" cy="54" r="${rr}" fill="none" stroke="#3b4252" stroke-width="2"/>`).join('') +
+         Array.from({length: 8}, (_, i) => `<line x1="60" y1="54" x2="${r(60+32*Math.cos(i*Math.PI/4))}" y2="${r(54+32*Math.sin(i*Math.PI/4))}" stroke="#3b4252" stroke-width="1.6"/>`).join('') +
+         `<circle cx="60" cy="54" r="5" fill="#f59e0b"/>`) +
+  fX(110, txX(54, 24, '750 W', 26, '#fbbf24') + txX(54, 11, '80+ GOLD', 7.5, '#e5e7eb')) +
+  fY(94, Array.from({length: 5}, (_, i) => `<rect x="${18+i*13}" y="34" width="9" height="14" rx="1.5" fill="#0b0d11"/>`).join('') +
+         `<rect x="86" y="12" width="12" height="9" rx="2" fill="#dc2626"/>`));
+
+// --- HDD, police a SSD ---
+add('hdd', 'storage',
+  box(118, 20, 6, 108, 70, 26, '#c9ced8') +
+  fZ(32, `<rect x="128" y="28" width="88" height="54" rx="4" fill="#f8fafc"/><rect x="128" y="28" width="88" height="13" rx="4" fill="#2563eb"/>` +
+         txZ(172, 62, 'HDD', 17, '#1e293b') + txZ(172, 75, '1 TB · 7200 ot/min', 7, '#475569') +
+         [[122,25],[222,25],[122,86],[222,86]].map(([a,b]) => `<circle cx="${a}" cy="${b}" r="2.4" fill="#8b93a1"/>`).join('')) +
+  fX(226, `<rect x="28" y="10" width="13" height="9" fill="#0b0d11"/><rect x="48" y="10" width="34" height="9" fill="#0b0d11"/>` +
+          Array.from({length: 7}, (_, i) => `<rect x="${50+i*4.5}" y="13" width="2" height="3" fill="#e0b84a"/>`).join('')));
+add('shelf', 'case', box(118, 20, 34, 108, 70, 3, '#3b4252'), { static: true });
+add('ssd', 'storage',
+  box(130, 28, 37, 80, 54, 8, '#aeb6c4') +
+  fZ(45, `<rect x="136" y="34" width="68" height="42" rx="3" fill="#1d4ed8"/>` +
+         txZ(170, 62, 'SSD', 18, '#fff') + txZ(170, 48, '256 GB', 8, '#bfdbfe') +
+         `<circle cx="134" cy="31" r="2" fill="#6b7280"/><circle cx="206" cy="31" r="2" fill="#6b7280"/><circle cx="134" cy="79" r="2" fill="#6b7280"/><circle cx="206" cy="79" r="2" fill="#6b7280"/>`));
+
+// --- grafická karta ---
+add('gpu', 'gpu',
+  box(18, 10, 108, 6, 34, 38, '#cbd5e1') +
+  box(24, 10, 110, 106, 70, 26, '#2d3440') +
+  fZ(136, [46, 77, 108].map(cx => fan(cx, 42, 14, '#38bdf8', '#0b0f14')).join('') +
+          `<rect x="30" y="68" width="94" height="3" rx="1.5" fill="url(#led)"/>` + txZ(77, 17, 'GRAFICKÁ KARTA', 6.5, '#94a3b8')) +
+  fY(80, txY(77, 118, 'GPU', 13, '#e2e8f0') + `<rect x="30" y="128" width="94" height="2" fill="url(#led)"/>`));
+
+// --- procesor + chladič ---
+add('cpu', 'cpu',
+  box(64, 10, 202, 28, 3, 28, '#3a7d52') +
+  box(67, 13, 205, 22, 2, 22, '#d3d9e2') +
+  fY(15, `<polygon points="67,205 74,205 67,212" fill="#e0b84a"/>` + txY(80, 214, 'CPU', 8.5, '#475569')));
+
+add('cooler', 'cooler',
+  box(66, 14, 204, 24, 4, 24, '#c97b3a') +
+  box(54, 18, 190, 48, 50, 52, '#cbd2dd') +
+  fX(102, Array.from({length: 16}, (_, i) => `<line x1="${21+i*3}" x2="${21+i*3}" y1="190" y2="242" stroke="rgba(0,0,0,.28)" stroke-width=".9"/>`).join('')) +
+  fZ(242, Array.from({length: 16}, (_, i) => `<line y1="${21+i*3}" y2="${21+i*3}" x1="54" x2="102" stroke="rgba(0,0,0,.25)" stroke-width=".9"/>`).join('') +
+          [64, 78, 92].map(x => `<circle cx="${x}" cy="40" r="2.6" fill="#c97b3a"/>`).join('')) +
+  box(54, 68, 190, 48, 12, 52, '#262c38') +
+  fY(80, fan(78, 216, 20, '#0ea5e9', '#0b0f14') +
+         [[58,194],[98,194],[58,238],[98,238]].map(([a,b]) => `<circle cx="${a}" cy="${b}" r="1.8" fill="#94a3b8"/>`).join('')));
+
+// --- operační paměť ---
+function ram(id, x) {
+  add(id, 'ram',
+    box(x, 10, 189, 4, 26, 78, '#1f2937') +
+    box(x - 1, 16, 190, 6, 20, 76, '#e11d48') +
+    fZ(266, `<rect x="${x-1}" y="16" width="6" height="20" fill="#fde047"/>`) +
+    fX(x + 5, `<rect x="10" y="190" width="6" height="76" fill="#e0b84a"/>` +
+              `<text transform="translate(27 205) matrix(0 1 -1 0 0 0)" font-size="11" font-weight="800" fill="rgba(255,255,255,.85)">DDR5</text>`));
+}
+ram('ram1', 109); ram('ram2', 127);
+
+// --- horní a přední panel skříně ---
+add('top', 'case',
+  box(0, 0, H - 6, D, W, 6, '#3a4152', { top: 'rgba(160,182,220,.20)', fy: 'rgba(70,82,106,.45)', fx: 'rgba(40,48,64,.45)' }) +
+  fZ(H, Array.from({length: 4}, (_, i) => `<rect x="60" y="${24+i*24}" width="150" height="8" rx="4" fill="rgba(27,32,41,.45)"/>`).join('')));
+
+add('front', 'case',
+  box(D - 6, 0, 0, 6, W, H, '#303744') +
+  fX(D, `<rect x="10" y="20" width="100" height="198" rx="8" fill="url(#mesh)" stroke="#1b2029"/>` +
+        [62, 160].map(v => fan(60, v, 26, '#2563eb', '#0b0f14') + `<circle cx="60" cy="${v}" r="29" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-opacity=".85"/>`).join('') +
+        `<circle cx="36" cy="258" r="9" fill="#0f1218" stroke="#22c55e" stroke-width="2.6"/><circle cx="36" cy="258" r="3" fill="#22c55e"/>` +
+        `<rect x="62" y="254" width="14" height="8" rx="1.5" fill="#0b0d11" stroke="#3b82f6"/><rect x="82" y="254" width="14" height="8" rx="1.5" fill="#0b0d11" stroke="#3b82f6"/>`));
+
+/* =====================================================================
+   3) DATA O ČÁSTECH
+   ===================================================================== */
+const PARTS = {
+  case: {
+    n: 1, name: 'Skříň', emoji: '🗄️', nick: 'Domeček pro počítač', color: '#64748b',
+    what: 'Kovová nebo plastová krabice, do které se schovají všechny ostatní části. Chrání je před prachem, nárazy i zvědavými prsty.',
+    how: 'Vpředu je tlačítko na zapnutí a USB zásuvky. Otvory a ventilátory vpouštějí dovnitř čerstvý vzduch, aby se součástky nepřehřály. Všimni si, že se při kliknutí sundala horní a přední deska.',
+    like: 'Skříň je jako dům. Uvnitř jsou „místnosti“ pro všechny součástky a zdi je chrání před okolním světem.',
+    without: 'Počítač by sice mohl fungovat, ale byl by celý odkrytý. Nasával by prach a hrozilo by, že na něj něco spadne nebo se na něj něco rozlije.',
+    fact: 'Skříním, které stojí na výšku, se říká „tower“ (věž). Ty nejmenší se jmenují mini-tower.',
+    friends: ['board'],
+    q: 'Která část je „domeček“, ve kterém jsou schované všechny ostatní?',
+    hint: 'Je největší ze všech a vpředu má tlačítko na zapnutí.'
+  },
+  board: {
+    n: 2, name: 'Základní deska', emoji: '🟩', nick: 'Silnice, které všechno propojují', color: '#16a34a',
+    what: 'Velká zelená deska plná tenounkých měděných cest. Je to „páteř“ počítače – všechny ostatní části se na ni zapojují nebo k ní připojují kabely.',
+    how: 'Má patici pro procesor, sloty pro paměť RAM a grafickou kartu a vzadu zásuvky pro myš, klávesnici, síť nebo monitor. Přenáší mezi součástkami data i elektřinu.',
+    like: 'Základní deska je jako město. Součástky jsou budovy a cesty na desce jsou ulice, kterými putují data.',
+    without: 'Součástky by byly jen hromada nepropojených dílů. Nemohly by si spolu „povídat“, takže by počítač vůbec nefungoval.',
+    fact: 'Některé cesty na základní desce jsou tenčí než lidský vlas. Deska je vlastně sendvič z několika vrstev, takže se cesty mohou křížit, aniž by se dotkly.',
+    friends: ['cpu', 'ram', 'gpu', 'psu'],
+    q: 'Která část propojuje všechny ostatní součástky dohromady – jako silnice ve městě?',
+    hint: 'Je to velká zelená deska, do které se všechno zasouvá.'
+  },
+  cpu: {
+    n: 3, name: 'Procesor (CPU)', emoji: '🧠', nick: 'Mozek počítače', color: '#f59e0b',
+    what: 'Malý čtvercový čip, který počítá. Za jedinou sekundu provede miliardy jednoduchých výpočtů a říká ostatním částem, co mají dělat.',
+    how: 'Čte pokyny programů (hra, prohlížeč, Word…) a podle nich počítá. Normálně je schovaný pod chladičem, proto se chladič při kliknutí zvedl nahoru.',
+    extra: ['🎨 Procesor umí i kreslit obraz', 'Většina dnešních procesorů má uvnitř ještě malý <b>grafický čip</b> (říká se mu integrovaná grafika). Stará se o všechny běžné a nenáročné věci: zobrazí plochu, web, dokumenty i video a obstará to bez grafické karty. Teprve náročné 3D hry, střih videa nebo modelování potřebují silnější samostatnou grafickou kartu.'],
+    like: 'Procesor je jako kuchař v restauraci. Dostane recept (program) a podle něj vaří (počítá), zatímco mu ostatní nosí suroviny.',
+    without: 'Počítač by neměl, kdo by počítal a řídil ostatní části. Nespustil by se a nic by nedělal.',
+    fact: 'Procesor má uvnitř miliardy mikroskopických přepínačů zvaných tranzistory, a přitom není větší než pár centimetrů. Dole má spoustu zlatých kontaktů.',
+    friends: ['cooler', 'ram', 'board'],
+    q: 'Najdi „mozek“ počítače, který všechno počítá a řídí.',
+    hint: 'Je to maličký čtvercový čip schovaný pod chladičem. Hledej kroužek s číslem u chladiče.'
+  },
+  cooler: {
+    n: 4, name: 'Chladič procesoru', emoji: '❄️', nick: 'Klimatizace pro procesor', color: '#0ea5e9',
+    what: 'Kovová „věž“ s tenkými žebry a ventilátorem. Odvádí teplo, které procesor při práci vyrábí.',
+    how: 'Teplo se z procesoru přenese do kovu a ventilátor ho odfoukne pryč. Mezi procesor a chladič se dává tenká vrstva teplovodivé pasty.',
+    like: 'Je to jako když foukáš na horkou polévku, aby se ochladila.',
+    without: 'Procesor by se přehřál. Počítač by zpomalil nebo by se sám vypnul, aby se nezničil.',
+    fact: 'Při práci se procesor zahřívá jako malá žehlička. Proto mají herní počítače často víc ventilátorů.',
+    friends: ['cpu'],
+    q: 'Která část brání procesoru, aby se přehřál? Má ventilátor a kovová žebra.',
+    hint: 'Vypadá jako malá věž s ventilátorem.'
+  },
+  ram: {
+    n: 5, name: 'Operační paměť (RAM)', emoji: '⚡', nick: 'Pracovní stůl počítače', color: '#e11d48',
+    what: 'Velmi rychlá paměť, kam počítač dává všechno, s čím právě pracuje: otevřené programy, hru nebo web.',
+    how: 'Procesor k ní má hned po ruce, a proto je rychlejší než disk. Jakmile počítač vypneš, RAM všechno zapomene.',
+    like: 'RAM je jako lavice ve škole. Máš na ní rozložený sešit a učebnici, se kterými právě pracuješ. Čím větší lavice, tím víc věcí na ní najednou uneseš.',
+    without: 'Počítač by se nespustil. Nebylo by kam dát běžící programy.',
+    fact: 'Dnes mívá počítač 8 až 32 GB paměti RAM. Pokud vypadne proud, všechno neuložené je pryč, proto se práce musí ukládat!',
+    friends: ['cpu', 'storage'],
+    q: 'Kde si počítač drží rozdělanou práci, ale po vypnutí na všechno zapomene?',
+    hint: 'Jsou to dvě úzké destičky stojící vedle sebe, každá s červeným krytem.'
+  },
+  gpu: {
+    n: 6, name: 'Grafická karta (GPU)', emoji: '🎮', nick: 'Malíř obrazu', color: '#8b5cf6',
+    what: 'Plochá karta s vlastním čipem a ventilátory. Vypočítává obraz, který vidíš na monitoru – hlavně ve hrách a ve videu.',
+    how: 'Zasouvá se do dlouhého slotu na základní desce. Čím je silnější, tím detailnější obraz a plynulejší hru zvládne.',
+    like: 'Je to jako tým tisíců malých malířů. Každý domalovává svůj kousek obrázku a všichni dohromady jsou hotoví za zlomek vteřiny.',
+    without: 'Většina procesorů má vestavěnou grafiku, takže by obraz zůstal a běžná práce by fungovala. Náročné hry by ale byly sekané. Bez jakékoliv grafiky by byl monitor černý.',
+    fact: 'Grafické karty se dnes používají i pro umělou inteligenci. Bývají to nejdražší součástky herních počítačů.',
+    friends: ['board', 'psu'],
+    q: 'Která část kreslí obraz do her a videí?',
+    hint: 'Je to plochá karta se třemi ventilátory a nápisem GPU.'
+  },
+  psu: {
+    n: 7, name: 'Zdroj', emoji: '🔌', nick: 'Srdce, které rozvádí elektřinu', color: '#f97316',
+    what: 'Černá krabice, do které vede kabel ze zásuvky. Přeměňuje elektřinu ze zásuvky na menší napětí, které součástky snesou, a kabely ji rozvádí po celém počítači.',
+    how: 'Číslo na zdroji (třeba 750 W) říká, kolik výkonu zdroj dodá. Herní počítač potřebuje silnější zdroj než ten kancelářský.',
+    like: 'Je to jako vodárna. Do ní přitéká silný proud vody a ona ho rozdělí do menších trubek pro všechny domy.',
+    without: 'Počítač by byl úplně „mrtvý“. Bez proudu nic nesvítí ani nepočítá.',
+    fact: '⚠️ Uvnitř zdroje je nebezpečné napětí, i když je počítač vypnutý. Nikdy ho nerozebírej!',
+    friends: ['board', 'gpu'],
+    q: 'Která část bere elektřinu ze zásuvky a rozvádí ji do celého počítače?',
+    hint: 'Leží dole a je na ní napsáno 750 W.'
+  },
+  storage: {
+    n: 8, name: 'Úložiště (HDD, SSD, M.2)', emoji: '💾', nick: 'Skříň na věci, které se nesmí ztratit', color: '#2563eb',
+    what: 'Tady zůstávají tvoje data i po vypnutí: Windows, hry, fotky, dokumenty. Existují tři druhy: starší HDD, rychlý SSD (modrá nálepka) a nejnovější <b>M.2 NVMe</b> – malá destička velká jako žvýkačka, která se zasouvá přímo do základní desky.',
+    how: 'HDD má uvnitř točící se kovové disky. Je levný a pojme hodně dat, ale je nejpomalejší. SSD má jen paměťové čipy bez pohyblivých částí. M.2 NVMe je také bez pohyblivých částí, ale místo kabelu používá rychlou „dálnici“ přímo na základní desce, a proto je nejrychlejší.',
+    table: [
+      ['HDD', 'asi 100–200 MB/s', 'asi 10 ms', 8, '#94a3b8'],
+      ['SSD (SATA)', 'asi 500 MB/s', 'asi 0,1 ms', 35, '#3b82f6'],
+      ['M.2 NVMe', '3 000–7 000 MB/s', 'asi 0,02 ms', 100, '#8b5cf6']
+    ],
+    like: 'Je to jako knihovna. Knihy v ní zůstávají pořád, zatímco na lavici (RAM) máš jen ty, které právě čteš.',
+    without: 'Počítač by neměl, kde mít systém ani tvoje soubory. Nenastartoval by a nic by si nepamatoval.',
+    fact: 'Disk HDD se točí obvykle 5 400 až 7 200× za minutu. SSD se nehýbe vůbec, a proto je mnohem rychlejší.',
+    friends: ['ram', 'cpu'],
+    q: 'Kde zůstanou tvoje fotky a hry, i když počítač vypneš?',
+    hint: 'Tvoří ho tři součástky: plochý stříbrný SSD s modrou nálepkou, větší HDD a malá destička M.2 na základní desce.'
+  }
+};
+const ORDER = Object.keys(PARTS);
+
+// jak se které části při kliknutí vysunou (3D vektor [dx,dy,dz] nebo {d:[…],k:zvětšení})
+const EXPLODE = {
+  case:    { top: [0, 0, 75], front: [85, 0, 0] },
+  board:   { board: [0, 55, 0], cpu: [0, 55, 0], cooler: [0, 55, 0], ram1: [0, 55, 0], ram2: [0, 55, 0], gpu: [0, 55, 0] },
+  cpu:     { cpu: { d: [0, 55, 0], k: 2.2 }, cooler: [0, 0, 110] },
+  cooler:  { cooler: [0, 60, 40] },
+  ram:     { ram1: { d: [-25, 70, 25], k: 1.3 }, ram2: { d: [30, 80, 25], k: 1.3 } },
+  gpu:     { gpu: [0, 95, 0] },
+  psu:     { psu: [0, 100, 0] },
+  storage: { ssd: { d: [0, 80, 40], k: 1.2 }, hdd: [0, 90, 0], m2: { d: [-10, 75, 35], k: 1.6 } }
+};
+
+// očíslované kroužky: kotva ve 3D, posun na obrazovce (pro čáru), za kterým dílem se pohybují
+const PINS = {
+  case:    { a: [270, 40, 262], follow: 'front' },
+  board:   { a: [146, 10, 262], follow: 'board' },
+  cpu:     { a: [78, 40, 242], off: [-62, -44], follow: 'cpu' },
+  cooler:  { a: [78, 80, 216], follow: 'cooler' },
+  ram:     { a: [111, 26, 266], follow: 'ram1' },
+  gpu:     { a: [77, 45, 136], follow: 'gpu' },
+  psu:     { a: [60, 54, 66], follow: 'psu' },
+  storage: { a: [170, 55, 45], follow: 'ssd' }
+};
+
+const FLOW = [
+  ['psu',     'Zdroj přivede elektřinu ze zásuvky.'],
+  ['board',   'Základní deska ji rozdá všem součástkám.'],
+  ['storage', 'Z disku se načte program (třeba Windows nebo hra).'],
+  ['ram',     'Program se přesune do rychlé paměti RAM.'],
+  ['cpu',     'Procesor začne počítat a řídit práci.'],
+  ['cooler',  'Chladič ho zároveň chrání před přehřátím.'],
+  ['gpu',     'Grafická karta nakreslí obraz na monitor.']
+];
+
+/* =====================================================================
+   4) VYKRESLENÍ SCÉNY
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const svg = $('#svg'), gPieces = $('#pieces'), gPins = $('#pins'), gTag = $('#tag'), gFloor = $('#floor');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PIECE = {};
+
+// podlaha s mřížkou
+(function floor() {
+  const x0 = -50, x1 = D + 50, y0 = -50, y1 = W + 50;
+  const poly = [[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([x, y]) => pt(x, y, 0)).join(' ');
+  let grid = '';
+  for (let x = x0; x <= x1; x += 40) grid += `<line x1="${pt(x,y0,0).split(',')[0]}" y1="${pt(x,y0,0).split(',')[1]}" x2="${pt(x,y1,0).split(',')[0]}" y2="${pt(x,y1,0).split(',')[1]}"/>`;
+  for (let y = y0; y <= y1; y += 40) grid += `<line x1="${pt(x0,y,0).split(',')[0]}" y1="${pt(x0,y,0).split(',')[1]}" x2="${pt(x1,y,0).split(',')[0]}" y2="${pt(x1,y,0).split(',')[1]}"/>`;
+  gFloor.innerHTML =
+    `<mask id="fm"><polygon points="${poly}" fill="url(#fg)"/></mask>` +
+    `<g mask="url(#fm)"><polygon points="${poly}" fill="#9db4dd" fill-opacity=".28"/><g stroke="#6f8fc8" stroke-opacity=".45" stroke-width=".8">${grid}</g></g>` +
+    `<polygon points="${[[0,0],[D,0],[D,W],[0,W]].map(([x, y]) => pt(x + 14, y + 14, 0)).join(' ')}" fill="#0f172a" fill-opacity=".30" filter="url(#blur)"/>`;
+})();
+
+PIECES.forEach((p, i) => {
+  p.idx = i; PIECE[p.id] = p;
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'piece'); g.dataset.part = p.part; g.dataset.id = p.id;
+  g.style.setProperty('--acc', PARTS[p.part].color);
+  g.innerHTML = `<title>${PARTS[p.part].name}</title>` + p.svg;
+  gPieces.appendChild(g); p.el = g;
+});
+
+const pinEls = {};
+ORDER.forEach(id => {
+  const d = PINS[id], p = PARTS[id], [ax, ay] = P(...d.a), off = d.off || [0, 0];
+  const px = r(ax + off[0]), py = r(ay + off[1]);
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'pin'); g.dataset.part = id; g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button');
+  g.setAttribute('aria-label', `${p.n}. ${p.name}`);
+  g.style.setProperty('--acc', p.color);
+  g.innerHTML = `<title>${p.name}</title>` +
+    (d.off ? `<line x1="${r(ax)}" y1="${r(ay)}" x2="${px}" y2="${py}" stroke="${p.color}" stroke-width="2"/><circle cx="${r(ax)}" cy="${r(ay)}" r="3.5" fill="${p.color}" stroke="#fff" stroke-width="1.2"/>` : '') +
+    `<circle class="halo" cx="${px}" cy="${py}" r="12" fill="${p.color}"/>` +
+    `<circle class="face" cx="${px}" cy="${py}" r="12" fill="#fff" stroke="${p.color}" stroke-width="3"/>` +
+    `<text x="${px}" y="${py + 5}" text-anchor="middle" font-size="14" fill="${p.color}">${p.n}</text>`;
+  gPins.appendChild(g); pinEls[id] = g;
+});
+
+/* =====================================================================
+   5) VYSOUVÁNÍ
+   ===================================================================== */
+let sel = null, orderTimer = 0;
+
+function target(partId, pieceId) {
+  const e = partId && EXPLODE[partId] && EXPLODE[partId][pieceId];
+  if (!e) return { x: 0, y: 0, k: 1 };
+  const d = Array.isArray(e) ? e : e.d, k = Array.isArray(e) ? 1 : (e.k || 1);
+  const s = P(...d);
+  return { x: s[0], y: s[1], k };
+}
+function moveEl(el, t) {
+  const to = `translate(${r(t.x)}px,${r(t.y)}px) scale(${t.k})`;
+  const from = getComputedStyle(el).transform;
+  el.style.transform = to;
+  if (reduce) return;
+  el.animate([{ transform: from === 'none' ? 'translate(0px,0px) scale(1)' : from }, { transform: to }],
+             { duration: 700, easing: 'cubic-bezier(.2,.9,.25,1)' });
+}
+function applyOrder() {
+  const lifted = sel ? Object.keys(EXPLODE[sel]) : [];
+  PIECES.filter(p => !lifted.includes(p.id)).forEach(p => gPieces.appendChild(p.el));
+  PIECES.filter(p => lifted.includes(p.id)).forEach(p => gPieces.appendChild(p.el));
+}
+
+function select(id) {
+  if (id === sel) id = null;                    // druhé kliknutí = složit zpět
+  sel = id;
+  const map = id ? EXPLODE[id] : {};
+  // vysunované díly dáme dopředu, aby je nic nepřekrývalo
+  if (id) PIECES.filter(p => map[p.id] && !p.static).forEach(p => gPieces.appendChild(p.el));
+  PIECES.forEach(p => {
+    moveEl(p.el, target(id, p.id));
+    p.el.classList.toggle('sel', p.part === id);
+    p.el.classList.toggle('dim', !!id && p.part !== id && !map[p.id] && p.part !== 'case');
+  });
+  ORDER.forEach(pid => {
+    moveEl(pinEls[pid], { ...target(id, PINS[pid].follow), k: 1 });
+    pinEls[pid].classList.toggle('sel', pid === id);
+    pinEls[pid].classList.toggle('dim', !!id && pid !== id);
+  });
+  clearTimeout(orderTimer);
+  orderTimer = setTimeout(applyOrder, reduce ? 0 : 720);
+  showTag(id);
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.part === id)));
+  return id;
+}
+
+function showTag(id) {
+  gTag.innerHTML = '';
+  if (!id || quiz) return;
+  const key = Object.keys(EXPLODE[id]).find(k => PIECE[k].part === id);
+  const bb = PIECE[key].el.getBBox(), t = target(id, key);
+  let cx = bb.x + bb.width / 2 + t.x, cy = bb.y - (bb.height * (t.k - 1)) / 2 + t.y - 12;
+  const label = PARTS[id].name;
+  const w = label.length * 8.6 + 22;
+  cx = Math.min(320 - w / 2, Math.max(-180 + w / 2, cx));
+  cy = Math.max(-352, cy);
+  gTag.innerHTML = `<g class="tagpill" transform="translate(${r(cx)} ${r(cy)})">
+    <rect x="${-w/2}" y="-20" width="${w}" height="26" rx="13" fill="${PARTS[id].color}"/>
+    <polygon points="-6,6 6,6 0,13" fill="${PARTS[id].color}"/>
+    <text y="-2" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${label}</text></g>`;
+}
+
+/* =====================================================================
+   6) PANEL – PROZKOUMEJ / KVÍZ
+   ===================================================================== */
+const content = $('#content'), chipsEl = $('#chips');
+let quiz = null;
+
+chipsEl.innerHTML = ORDER.map(id => `<button class="chip" data-part="${id}" style="--acc:${PARTS[id].color}" aria-pressed="false"><b>${PARTS[id].n}</b>${PARTS[id].name.replace(/ \(.*\)/, '')}</button>`).join('');
+
+function renderIdle() {
+  content.innerHTML = `<article class="card idle" style="--acc:#2563eb">
+    <h2>Počítač je tým 🤝</h2>
+    <p>Každá část má svou práci a žádná nemůže chybět. <b>Klikni na kteroukoliv část</b> nebo na kroužek s číslem a ukážeme ti, co dělá.</p>
+    <h3>Co se stane, když zmáčkneš tlačítko?</h3>
+    <ol>${FLOW.map(([id, text], i) => `<li><button data-part="${id}" style="--acc:${PARTS[id].color}"><span class="n">${i + 1}</span><span><b>${PARTS[id].name.replace(/ \(.*\)/, '')}:</b> ${text}</span></button></li>`).join('')}</ol>
+  </article>`;
+}
+function renderPart(id) {
+  const p = PARTS[id], i = ORDER.indexOf(id);
+  content.innerHTML = `<article class="card" style="--acc:${p.color}">
+    <div class="card-head"><span class="emoji">${p.emoji}</span><div><h2>${p.name}</h2><p class="nick">${p.nick}</p></div></div>
+    <h3>Co to je?</h3><p>${p.what}</p>
+    <h3>Co dělá?</h3><p>${p.how}</p>
+    ${p.extra ? `<div class="box extra"><h3>${p.extra[0]}</h3><p>${p.extra[1]}</p></div>` : ''}
+    ${p.table ? `<h3>⏱️ Porovnání disků</h3><table class="speed"><thead><tr><th></th><th>Rychlost čtení</th><th>Přístupová doba</th></tr></thead><tbody>${p.table.map(t => `<tr><th>${t[0]}</th><td>${t[1]}<span class="bar"><i style="width:${t[3]}%;background:${t[4]}"></i></span></td><td>${t[2]}</td></tr>`).join('')}</tbody></table><p class="note">Rychlost říká, kolik dat se přenese za sekundu. Přístupová doba říká, jak dlouho disk hledá, než začne data posílat. Menší číslo je lepší. Hodnoty jsou přibližné.</p>` : ''}
+    <div class="box like"><h3>🧠 Dá se to přirovnat</h3><p>${p.like}</p></div>
+    <div class="box without"><h3>❓ Co se stane, když to chybí?</h3><p>${p.without}</p></div>
+    <div class="box fact"><h3>💡 Víš, že…?</h3><p>${p.fact}</p></div>
+    <div class="friends">Spolupracuje s: ${p.friends.map(f => `<button class="chip" data-part="${f}" style="--acc:${PARTS[f].color}"><b>${PARTS[f].n}</b>${PARTS[f].name.replace(/ \(.*\)/, '')}</button>`).join('')}</div>
+    <div class="nav">
+      <button class="btn" data-go="${ORDER[(i + ORDER.length - 1) % ORDER.length]}" aria-label="Předchozí část">←</button>
+      <button class="btn" data-go="${ORDER[(i + 1) % ORDER.length]}" aria-label="Další část">→</button>
+      <span class="grow"></span>
+      <button class="btn primary" data-reset>Složit zpět</button>
+    </div>
+  </article>`;
+}
+
+function setTitles(on) {
+  document.querySelectorAll('.piece title, .pin title').forEach(t => {
+    const part = t.parentNode.dataset.part;
+    t.textContent = on ? PARTS[part].name : '';
+  });
+}
+
+/* ---- kvíz ---- */
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function startQuiz() {
+  quiz = { order: shuffle(ORDER), i: 0, wrong: 0, results: [], done: false, msg: null };
+  select(null); sel = null; gTag.innerHTML = '';
+  document.body.classList.add('quiz'); chipsEl.hidden = true; setTitles(false);
+  renderQuiz();
+}
+function stopQuiz() {
+  quiz = null; chipsEl.hidden = false; setTitles(true);
+  select(null); renderIdle();
+}
+function progress() {
+  return `<div class="q-progress">${quiz.order.map((_, k) => `<i class="${k < quiz.results.length ? (quiz.results[k] ? 'ok' : 'mid') : k === quiz.i ? 'now' : ''}"></i>`).join('')}</div>`;
+}
+function renderQuiz() {
+  if (quiz.i >= quiz.order.length) {
+    const s = quiz.results.filter(Boolean).length, n = quiz.order.length;
+    const msg = s === n ? 'Perfektní! Jsi opravdový počítačový expert! 🏆' : s >= n * .6 ? 'Skvělá práce! Ještě chvilku a budeš mít všechno. 👍' : 'Dobrý začátek! Zkus se podívat na části ještě jednou a pak kvíz zopakuj. 💪';
+    select(null);
+    content.innerHTML = `<article class="card quiz" style="--acc:#2563eb">${progress()}<h2>Hotovo! 🎉</h2>
+      <div class="score">${s} / ${n}</div><p>správně na první pokus</p><p><b>${msg}</b></p>
+      <div class="nav"><button class="btn primary" data-qrestart>Zkusit znovu</button><button class="btn" data-qstop>Zpět na prozkoumávání</button></div></article>`;
+    return;
+  }
+  const id = quiz.order[quiz.i], p = PARTS[id];
+  let fb = '';
+  if (quiz.msg === 'ok') fb = `<div class="feedback ok">✅ Správně! Je to <b>${p.name}</b> – ${p.nick.toLowerCase()}.</div>`;
+  else if (quiz.msg === 'no') fb = `<div class="feedback no">❌ To není ono, zkus to znovu.</div>`;
+  if (quiz.wrong >= 2 && !quiz.done) fb += `<div class="feedback hint">💡 Nápověda: ${p.hint}</div>`;
+  content.innerHTML = `<article class="card quiz" style="--acc:#2563eb">${progress()}
+    <h3>Otázka ${quiz.i + 1} z ${quiz.order.length}</h3>
+    <div class="qtext">${p.q}</div>
+    <p style="color:var(--muted)">Klikni na část v modelu nebo na kroužek s číslem.</p>
+    ${fb}
+    <div class="nav">${quiz.done
+      ? `<span class="grow"></span><button class="btn primary" data-qnext>${quiz.i + 1 >= quiz.order.length ? 'Zobrazit výsledek' : 'Další otázka →'}</button>`
+      : `<button class="btn" data-qhint>💡 Nápověda</button><span class="grow"></span>`}</div>
+  </article>`;
+  if (quiz.msg === 'no') { content.firstElementChild.classList.add('shake'); }
+}
+function quizAnswer(id) {
+  if (quiz.done || quiz.i >= quiz.order.length) return;
+  const cur = quiz.order[quiz.i];
+  if (id === cur) {
+    quiz.results.push(quiz.wrong === 0); quiz.done = true; quiz.msg = 'ok';
+    select(id); gTag.innerHTML = '';
+    renderQuiz();
+    // po vysunutí doplníme krátké vysvětlení
+    content.firstElementChild.insertAdjacentHTML('beforeend', '');
+  } else { quiz.wrong++; quiz.msg = 'no'; renderQuiz(); }
+}
+function quizNext() { quiz.i++; quiz.wrong = 0; quiz.done = false; quiz.msg = null; select(null); renderQuiz(); }
+
+/* ---- společné řízení ---- */
+function onPart(id) {
+  if (quiz) return quizAnswer(id);
+  const now = select(id);
+  if (now) renderPart(now); else renderIdle();
+  if (now && matchMedia('(max-width:900px)').matches) content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+svg.addEventListener('click', e => {
+  const g = e.target.closest('[data-part]');
+  if (g) onPart(g.dataset.part);
+  else if (!quiz && sel) onPart(sel);          // klik do prázdna = složit zpět
+});
+svg.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('pin')) { e.preventDefault(); onPart(e.target.dataset.part); }
+});
+let hovPart = null;
+function setHover(part) {
+  if (part === hovPart) return; hovPart = part;
+  PIECES.forEach(p => p.el.classList.toggle('hov', p.part === part));
+}
+svg.addEventListener('pointerover', e => { const g = e.target.closest('.piece,.pin'); setHover(g ? g.dataset.part : null); });
+svg.addEventListener('pointerleave', () => setHover(null));
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'tab-explore' && quiz) { stopQuiz(); }
+  else if (b.id === 'tab-quiz' && !quiz) { startQuiz(); }
+  else if (b.dataset.go) onPart(b.dataset.go);
+  else if (b.dataset.reset !== undefined) onPart(sel);
+  else if (b.dataset.qnext !== undefined) quizNext();
+  else if (b.dataset.qhint !== undefined) { quiz.wrong = Math.max(quiz.wrong, 2); quiz.msg = null; renderQuiz(); }
+  else if (b.dataset.qrestart !== undefined) startQuiz();
+  else if (b.dataset.qstop !== undefined) stopQuiz();
+  else if (b.dataset.part && !svg.contains(b)) { if (!quiz) onPart(b.dataset.part); }
+  $('#tab-explore').setAttribute('aria-pressed', String(!quiz));
+  $('#tab-quiz').setAttribute('aria-pressed', String(!!quiz));
+});
+document.addEventListener('keydown', e => {
+  if (quiz) return;
+  if (e.key === 'Escape' && sel) onPart(sel);
+  if (sel && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !/INPUT|TEXTAREA/.test(e.target.tagName)) {
+    const i = ORDER.indexOf(sel), n = ORDER[(i + (e.key === 'ArrowRight' ? 1 : ORDER.length - 1)) % ORDER.length];
+    onPart(n);
+  }
+});
+
+renderIdle();
+</script>
+</body>
+</html>
